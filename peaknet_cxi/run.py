@@ -86,6 +86,7 @@ def run_inference(args):
     device = torch.device(f"cuda:{dist_local_rank}")
     torch.cuda.set_device(device)
 
+    dataset = None
     try:
         # Initialize the PeakNetInference
         model = load_model(args.config_path, args.weights_path)
@@ -139,7 +140,7 @@ def run_inference(args):
         logging.error("Traceback:")
         logging.error(traceback.format_exc())
     finally:
-        dataset.cleanup()
+        if dataset is not None: dataset.cleanup()
         if uses_dist:
             dist.destroy_process_group()
         logging.info("Inference completed or terminated. Exiting...")

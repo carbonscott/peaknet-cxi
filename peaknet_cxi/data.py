@@ -27,28 +27,24 @@ class QueueDataset(IterableDataset):
 
     def data_iterator(self, worker_id, num_workers):
         reader = self.worker_readers[worker_id]
-        try:
-            while True:
-                try:
-                    data = reader.read()
-                    if data is None:
-                        logging.debug(f"Worker {worker_id}: No data received, sleeping...")
-                        time.sleep(0.1)  # Short sleep to avoid busy-waiting
-                        continue
-                    rank, idx, image_data = data
-                    if idx % num_workers == worker_id:
-                        logging.debug(f"Worker {worker_id}: Received data: rank={rank}, idx={idx}, image_shape={image_data.shape}")
-                        tensor = torch.from_numpy(image_data).unsqueeze(0)  # (H,W) -> (1,H,W)
-                        yield tensor
-                except DataReaderError as e:
-                    logging.error(f"Worker {worker_id}: DataReader error: {e}")
-                    break
-                except Exception as e:
-                    logging.error(f"Worker {worker_id}: Unexpected error in QueueDataset: {e}")
-                    time.sleep(1)  # Longer sleep on unexpected errors
-        finally:
-            # Don't close the reader here, as it's shared across epochs
-            pass
+        while True:
+            try:
+                data = reader.read()
+                if data is None:
+                    logging.debug(f"Worker {worker_id}: No data received, sleeping...")
+                    time.sleep(0.1)  # Short sleep to avoid busy-waiting
+                    continue
+                rank, idx, image_data = data
+                if idx % num_workers == worker_id:
+                    logging.debug(f"Worker {worker_id}: Received data: rank={rank}, idx={idx}, image_shape={image_data.shape}")
+                    tensor = torch.tensor(image_data).unsqueeze(0)  # (H,W) -> (1,H,W)
+                    yield tensor
+            except DataReaderError as e:
+                logging.error(f"Worker {worker_id}: DataReader error: {e}")
+                break
+            except Exception as e:
+                logging.error(f"Worker {worker_id}: Unexpected error in QueueDataset: {e}")
+                time.sleep(1)  # Longer sleep on unexpected errors
 
     def cleanup(self):
         """Explicit cleanup method to close all DataReaders."""

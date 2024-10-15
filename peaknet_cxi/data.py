@@ -50,7 +50,15 @@ class QueueDataset(IterableDataset):
             # Don't close the reader here, as it's shared across epochs
             pass
 
-    def __del__(self):
+    def cleanup(self):
+        """Explicit cleanup method to close all DataReaders."""
         for worker_id, reader in self.worker_readers.items():
-            reader.close()
-            logging.debug(f"Worker {worker_id}: DataReader closed in destructor")
+            try:
+                reader.close()
+                logging.debug(f"Worker {worker_id}: DataReader closed in cleanup")
+            except Exception as e:
+                logging.error(f"Worker {worker_id}: Error closing DataReader in cleanup: {e}")
+        self.worker_readers.clear()
+
+    def __del__(self):
+        self.cleanup()

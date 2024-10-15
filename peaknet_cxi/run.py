@@ -139,6 +139,7 @@ def run_inference(args):
         logging.error("Traceback:")
         logging.error(traceback.format_exc())
     finally:
+        dataset.cleanup()
         if uses_dist:
             dist.destroy_process_group()
         logging.info("Inference completed or terminated. Exiting...")
